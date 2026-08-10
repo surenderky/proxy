@@ -26,7 +26,7 @@ set -u
 set -x
 
 # Update to main as envoyproxy/proxy has updated.
-UPDATE_BRANCH=${UPDATE_BRANCH:-"main"}
+UPDATE_BRANCH=${UPDATE_BRANCH:-"test_wasm_patch"}
 ENVOY_SHA=${ENVOY_SHA:-""}
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"

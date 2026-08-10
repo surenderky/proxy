@@ -10,3 +10,56 @@
  }
 
  } // namespace proxy_wasm
+diff --git a/include/proxy-wasm/word.h b/include/proxy-wasm/word.h
+index bc0d23a..a51b981 100644
+--- a/include/proxy-wasm/word.h
++++ b/include/proxy-wasm/word.h
+@@ -24,8 +24,16 @@ namespace proxy_wasm {
+ // Use byteswap functions only when compiling for big-endian platforms.
+ #if defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) &&                                    \
+     __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+-#define htowasm(x, vm_uses_wasm_byte_order) ((vm_uses_wasm_byte_order) ? __builtin_bswap32(x) : (x))
+-#define wasmtoh(x, vm_uses_wasm_byte_order) ((vm_uses_wasm_byte_order) ? __builtin_bswap32(x) : (x))
++static inline float bswap(float x) {
++  return std::bit_cast<float>(__builtin_bswap32(std::bit_cast<int32_t>(x)));
++}
++static inline double bswap(double x) {
++  return std::bit_cast<double>(__builtin_bswap64(std::bit_cast<int64_t>(x)));
++}
++static inline uint32_t bswap(uint32_t x) { return __builtin_bswap32(x); }
++static inline auto bswap(auto x) { return __builtin_bswap64(x); }
++#define htowasm(x, vm_uses_wasm_byte_order) ((vm_uses_wasm_byte_order) ? bswap(x) : (x))
++#define wasmtoh(x, vm_uses_wasm_byte_order) ((vm_uses_wasm_byte_order) ? bswap(x) : (x))
+ #else
+ #define htowasm(x, vm_uses_wasm_byte_order) (x)
+ #define wasmtoh(x, vm_uses_wasm_byte_order) (x)
+diff --git a/src/wamr/wamr.cc b/src/wamr/wamr.cc
+index 8eef735..3f2d8ae 100644
+--- a/src/wamr/wamr.cc
++++ b/src/wamr/wamr.cc
+@@ -491,7 +491,9 @@ template <typename T> T convertValueTypeToArg(wasm_val_t val);
+ template <> uint32_t convertValueTypeToArg<uint32_t>(wasm_val_t val) {
+   return static_cast<uint32_t>(val.of.i32);
+ }
+-template <> Word convertValueTypeToArg<Word>(wasm_val_t val) { return val.of.i32; }
++template <> Word convertValueTypeToArg<Word>(wasm_val_t val) {
++  return static_cast<uint32_t>(val.of.i32);
++}
+ template <> int64_t convertValueTypeToArg<int64_t>(wasm_val_t val) { return val.of.i64; }
+ template <> uint64_t convertValueTypeToArg<uint64_t>(wasm_val_t val) {
+   return static_cast<uint64_t>(val.of.i64);
+diff --git a/src/wasmtime/wasmtime.cc b/src/wasmtime/wasmtime.cc
+index a72a036..ba46a57 100644
+--- a/src/wasmtime/wasmtime.cc
++++ b/src/wasmtime/wasmtime.cc
+@@ -464,7 +464,9 @@ template <typename T> T convertValueTypeToArg(wasm_val_t val);
+ template <> uint32_t convertValueTypeToArg<uint32_t>(wasm_val_t val) {
+   return static_cast<uint32_t>(val.of.i32);
+ }
+-template <> Word convertValueTypeToArg<Word>(wasm_val_t val) { return val.of.i32; }
++template <> Word convertValueTypeToArg<Word>(wasm_val_t val) {
++  return static_cast<uint32_t>(val.of.i32);
++}
+ template <> int64_t convertValueTypeToArg<int64_t>(wasm_val_t val) { return val.of.i64; }
+ template <> uint64_t convertValueTypeToArg<uint64_t>(wasm_val_t val) {
+   return static_cast<uint64_t>(val.of.i64);
